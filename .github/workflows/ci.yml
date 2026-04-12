@@ -1,0 +1,36 @@
+name: Unit Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install CPU-only dependencies
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy scipy Pillow matplotlib tqdm pyyaml lpips einops torchdiffeq pot
+
+      - name: Smoke test (tiny model, CPU)
+        run: |
+          python -c "
+          from models.encoder import Encoder
+          from data.synthetic_channel import AWGNChannel
+          from models.flow_decoder import FlowDecoder
+          import torch
+          enc = Encoder(latent_dim=32, encoder_type='cnn', semantic_token_type='none')
+          ch  = AWGNChannel(snr_db=10)
+          dec = FlowDecoder(latent_dim=32, token_dim=0, image_size=8, n_blocks=2, n_channels=16)
+          x   = torch.randn(2, 3, 8, 8)
+          lat, tok = enc(x)
+          noisy = ch(lat)
+          loss = dec.compute_loss(x, noisy, tok)
+          print('Smoke test passed. Loss:', loss.item())
+          "
