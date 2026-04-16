@@ -65,7 +65,11 @@ class Encoder(nn.Module):
             latent = quantise(latent, self.quant_bits)
             
         # semantic token fallback logic if not passed precomputed
-        token = torch.zeros(image.size(0), 512, device=image.device)
+        if self.semantic_token_type == 'none':
+            token = torch.empty(image.size(0), 0, device=image.device)
+        else:
+            token = torch.zeros(image.size(0), 512, device=image.device)
+            
         if self.semantic_token_type == 'clip' and getattr(self, 'clip_model', None) is not None:
             with torch.no_grad():
                 import torch.nn.functional as F

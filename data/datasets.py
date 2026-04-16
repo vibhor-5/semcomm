@@ -60,7 +60,13 @@ class SemCommDataset(Dataset):
         Run once. Saves {cache_path}.pt containing all CLIP tokens.
         Call this at the top of session_01 and reuse every session.
         """
-        import clip
+        try:
+            import clip
+        except ImportError:
+            raise ImportError(
+                "The 'clip' module is required for semantic_token_type='clip'. "
+                "Please install it using: pip install git+https://github.com/openai/CLIP.git"
+            )
         import torch.nn.functional as F
         
         print(f"Precomputing CLIP tokens into {cache_path}")

@@ -65,7 +65,12 @@ class FlowDecoder(nn.Module):
         return self.out_conv(x)
         
     def _build_cond(self, latent, token, snr_emb):
-        parts = [latent, token]
+        parts = [latent]
+        if self.token_dim > 0 and token is not None and token.shape[-1] >= self.token_dim:
+            parts.append(token[..., :self.token_dim])
+        elif self.token_dim > 0 and token is not None:
+            parts.append(token)
+            
         if self.snr_conditioning and snr_emb is not None:
             parts.append(snr_emb)
         return torch.cat(parts, dim=-1)

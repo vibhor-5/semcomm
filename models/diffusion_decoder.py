@@ -53,8 +53,12 @@ class DiffusionDecoder(nn.Module):
         parts = []
         if latent is not None and latent.numel() > 0:
             parts.append(latent)
-        if token is not None and token.numel() > 0:
+            
+        if self.token_dim > 0 and token is not None and token.shape[-1] >= self.token_dim:
+            parts.append(token[..., :self.token_dim])
+        elif self.token_dim > 0 and token is not None and token.numel() > 0:
             parts.append(token)
+            
         if self.snr_conditioning and snr_emb is not None:
             parts.append(snr_emb)
             
