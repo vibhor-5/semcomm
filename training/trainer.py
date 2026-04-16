@@ -12,7 +12,7 @@ class Trainer:
         self.encoder = encoder.to(self.device)
         self.channel = channel.to(self.device)
         self.decoder = decoder.to(self.device)
-        self.scaler  = torch.cuda.amp.GradScaler()
+        self.scaler  = torch.amp.GradScaler('cuda')
         
         params = list(self.encoder.parameters()) + list(self.decoder.parameters())
         self.optimizer = torch.optim.AdamW(params, lr=cfg['training']['lr'],
@@ -74,6 +74,14 @@ class Trainer:
     def run(self, train_loader, val_loader, n_epochs):
         import wandb
         if self.cfg['logging']['use_wandb']:
+            try:
+                from kaggle_secrets import UserSecretsClient
+                user_secrets = UserSecretsClient()
+                wandb_api_key = user_secrets.get_secret("WANDB_API_KEY")
+                wandb.login(key=wandb_api_key)
+            except Exception as e:
+                print(f"Weights and Biases login via Kaggle secrets failed: {e}")
+                
             wandb.init(project=self.cfg['logging']['project'],
                        name=self.cfg['experiment_id'],
                        config=self.cfg)
