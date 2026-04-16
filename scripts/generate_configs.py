@@ -1,8 +1,10 @@
 import copy, yaml, os
 
 def write_config(cfg: dict, path: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    full_path = os.path.join(root, path)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    with open(full_path, 'w') as f:
         yaml.dump(cfg, f, default_flow_style=False)
 
 base_flow = {

@@ -48,6 +48,7 @@ wandb/
 # Data and Artifacts (Kaggle/Colab Outputs)
 data/
 outputs/
+configs/
 
 # Trained Models and Checkpoints
 *.pt
