@@ -14,8 +14,10 @@ def run_evaluation(cfg, checkpoint_path, test_loader, device, encoder, channel, 
     clip_model.eval()
         
     load_checkpoint(checkpoint_path, decoder, optimizer=None, scaler=None)
-    # the encoder might share the checkpoint or load separately if needed.
-    # In guide: load_checkpoint(checkpoint_path, decoder)  # encoder weights also in ckpt
+    # Also restore encoder weights from the same checkpoint if present
+    ckpt = torch.load(checkpoint_path, map_location='cpu')
+    if 'encoder_state' in ckpt:
+        encoder.load_state_dict(ckpt['encoder_state'])
     
     encoder.eval()
     decoder.eval()

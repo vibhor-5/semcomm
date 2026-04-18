@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import math
 import numpy as np
-from torchmetrics.image import FrechetInceptionDistance, StructuralSimilarityIndexMeasure
 
 def compute_clip_similarity(orig: torch.Tensor, recon: torch.Tensor, clip_model, device) -> float:
     """Mean cosine similarity in [0,1]. Higher is better."""
@@ -35,20 +34,24 @@ def compute_lpips(orig: torch.Tensor, recon: torch.Tensor, device, lpips_model=N
 
 def compute_fid(real_images: torch.Tensor, fake_images: torch.Tensor, device, batch_size=128) -> float:
     """FID using torchmetrics.image.FrechetInceptionDistance. Lower is better."""
+    try:
+        from torchmetrics.image import FrechetInceptionDistance
+    except ImportError:
+        from torchmetrics.image.fid import FrechetInceptionDistance
     fid = FrechetInceptionDistance(feature=2048, reset_real_features=False).to(device)
-    
+
     # torchmetrics FID expects images in [0, 255] uint8
     def to_uint8(x):
         return ((x + 1.0) * 127.5).clamp(0, 255).to(torch.uint8)
-        
+
     real_images_uint8 = to_uint8(real_images)
     fake_images_uint8 = to_uint8(fake_images)
-    
+
     for i in range(0, len(real_images_uint8), batch_size):
         fid.update(real_images_uint8[i:i+batch_size].to(device), real=True)
     for i in range(0, len(fake_images_uint8), batch_size):
         fid.update(fake_images_uint8[i:i+batch_size].to(device), real=False)
-        
+
     return float(fid.compute().item())
 
 def compute_psnr(orig: torch.Tensor, recon: torch.Tensor) -> float:
@@ -60,6 +63,11 @@ def compute_psnr(orig: torch.Tensor, recon: torch.Tensor) -> float:
 
 def compute_ssim(orig: torch.Tensor, recon: torch.Tensor) -> float:
     """Mean SSIM using torchmetrics."""
+    try:
+        from torchmetrics.image import StructuralSimilarityIndexMeasure
+    except ImportError:
+        from torchmetrics.functional import structural_similarity_index_measure as ssim_fn
+        return float(ssim_fn(recon.cpu(), orig.cpu(), data_range=2.0).item())
     ssim = StructuralSimilarityIndexMeasure(data_range=2.0)
     return float(ssim(recon.cpu(), orig.cpu()).item())
 

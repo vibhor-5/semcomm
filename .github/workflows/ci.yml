@@ -5,6 +5,8 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      CI: "true"   # Used by tests to skip CLIP/FID-heavy checks
     steps:
       - uses: actions/checkout@v4
 
@@ -16,7 +18,23 @@ jobs:
       - name: Install CPU-only dependencies
         run: |
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install numpy scipy Pillow matplotlib tqdm pyyaml lpips einops torchdiffeq pot
+          pip install numpy scipy Pillow matplotlib seaborn tqdm pyyaml einops torchdiffeq pot
+          pip install lpips torchmetrics[image]
+          # Skip clip, diffusers, wandb, accelerate — tested only on GPU sessions
+
+      - name: Lint (flake8 + black)
+        run: |
+          pip install flake8 black
+          black --check --diff .
+          flake8 . --max-line-length=100 --ignore=E203,W503 \
+                   --exclude=.git,__pycache__,notebooks,*.egg-info
+
+      - name: Unit tests (CPU — no CLIP/diffusers)
+        run: |
+          pip install pytest
+          pytest tests/ -v --tb=short -x \
+            --ignore=tests/test_losses.py \
+            -k "not clip and not fid and not diffusion"
 
       - name: Smoke test (tiny model, CPU)
         run: |
@@ -33,4 +51,5 @@ jobs:
           noisy = ch(lat)
           loss = dec.compute_loss(x, noisy, tok)
           print('Smoke test passed. Loss:', loss.item())
+          assert not torch.isnan(loss), 'Loss is NaN!'
           "

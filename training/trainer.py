@@ -1,5 +1,6 @@
 import torch
 import os
+import math
 import numpy as np
 from tqdm import tqdm
 from utils.checkpoint import get_checkpoint_dir, save_checkpoint
@@ -37,7 +38,7 @@ class Trainer:
              _, tokens = self.encoder(images)
              tokens = tokens.detach()
 
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast('cuda'):
             latent, _ = self.encoder(images)
             
             if self.cfg.get('channel', {}).get('snr_conditioning', False):
@@ -59,17 +60,93 @@ class Trainer:
 
         self.scaler.scale(total).backward()
         self.scaler.unscale_(self.optimizer)
-        torch.nn.utils.clip_grad_norm_(
-            list(self.encoder.parameters()) + list(self.decoder.parameters()),
-            self.cfg['training']['gradient_clip'])
+        all_params = list(self.encoder.parameters()) + list(self.decoder.parameters())
+        grad_norm = torch.nn.utils.clip_grad_norm_(all_params, self.cfg['training']['gradient_clip'])
         self.scaler.step(self.optimizer)
         self.scaler.update()
         self.optimizer.zero_grad()
 
-        return {'main': main_loss.item(), 'clip': clip_loss.item(), 'total': total.item()}
+        return {
+            'main': main_loss.item(),
+            'clip': clip_loss.item(),
+            'total': total.item(),
+            'grad_norm': float(grad_norm),
+        }
 
     def _validate(self, val_loader):
-        return {'clip': 0.0, 'psnr': 0.0}
+        """
+        Run validation: reconstruct images via the decoder and compute CLIP similarity
+        and PSNR. Uses at most 512 images to keep eval fast on free GPUs.
+        """
+        self.encoder.eval()
+        self.decoder.eval()
+
+        max_batches = max(1, 512 // self.cfg['training']['batch_size'])
+        all_orig, all_recon = [], []
+
+        with torch.no_grad():
+            for i, batch in enumerate(val_loader):
+                if i >= max_batches:
+                    break
+                images, _, tokens = batch
+                images = images.to(self.device)
+                tokens = tokens.to(self.device)
+
+                # If tokens are zero (no cache), compute from encoder
+                if tokens.sum() == 0 and self.encoder.semantic_token_type == 'clip':
+                    _, tokens = self.encoder(images)
+
+                latent, _ = self.encoder(images)
+                if self.cfg.get('channel', {}).get('snr_conditioning', False):
+                    noisy_latent, snr_used = self.channel(latent)
+                    snr_emb = torch.full((images.shape[0], 1), snr_used, device=self.device)
+                else:
+                    noisy_latent = self.channel(latent)
+                    snr_emb = None
+
+                recon = self.decoder.sample(
+                    noisy_latent, tokens,
+                    steps=self.cfg['evaluation'].get('sampling_steps', 10),
+                    snr_emb=snr_emb,
+                )
+                all_orig.append(images.cpu())
+                all_recon.append(recon.cpu())
+
+        self.encoder.train()
+        self.decoder.train()
+
+        if not all_orig:
+            return {'clip': 0.0, 'psnr': 0.0}
+
+        orig  = torch.cat(all_orig)
+        recon = torch.cat(all_recon)
+
+        # PSNR (fast, no extra model needed)
+        mse = torch.nn.functional.mse_loss(recon, orig).item()
+        psnr = 10 * math.log10(4.0 / mse) if mse > 0 else 100.0
+
+        metrics = {'psnr': float(psnr)}
+
+        # CLIP similarity — reuse CLIPLoss encoder if already loaded
+        if hasattr(self, 'clip_loss_fn'):
+            import torch.nn.functional as F
+            normalise_fn = self.clip_loss_fn.normalise
+
+            def encode_clip(x):
+                x = F.interpolate(x.to(self.device), size=224, mode='bilinear', align_corners=False)
+                x = (x + 1.0) / 2.0
+                x = normalise_fn(x)
+                return self.clip_loss_fn.model.encode_image(x).float()
+
+            with torch.no_grad():
+                f_orig  = F.normalize(encode_clip(orig),  dim=-1)
+                f_recon = F.normalize(encode_clip(recon), dim=-1)
+            clip_sim = (f_orig * f_recon).sum(dim=-1).mean().item()
+            metrics['clip'] = float(clip_sim)
+        else:
+            metrics['clip'] = 0.0
+
+        return metrics
 
     def run(self, train_loader, val_loader, n_epochs):
         import wandb
