@@ -315,53 +315,57 @@ def main():
             print(f"Already trained {n_epochs} epochs — skipping training.")
 
     # ── evaluate ─────────────────────────────────────────────────────────────
-    if n_epochs > 0:
-        from evaluation.evaluate import run_evaluation
-        import datetime
+    from evaluation.evaluate import run_evaluation
+    import datetime
 
-        best_ckpt = os.path.join(ckpt_dir, "best.pt")
-        if not os.path.exists(best_ckpt):
-            best_ckpt, _ = find_latest_checkpoint(ckpt_dir)
+    best_ckpt = os.path.join(ckpt_dir, "best.pt")
+    if not os.path.exists(best_ckpt):
+        best_ckpt, _ = find_latest_checkpoint(ckpt_dir)
 
+    # Proceed to evaluation if we found a checkpoint OR if n_epochs is 0
+    # (n_epochs=0 indicates a baseline experiment like JPEG that doesn't train).
+    if (best_ckpt and os.path.exists(best_ckpt)) or (n_epochs == 0):
         if best_ckpt and os.path.exists(best_ckpt):
             print(f"Evaluating checkpoint: {best_ckpt}")
-            metrics = run_evaluation(
-                cfg,
-                best_ckpt,
-                val_loader,
-                device,
-                encoder,
-                channel,
-                decoder,
-            )
-            print(f"\nResults for {cfg['experiment_id']}:")
-            for k, v in metrics.items():
-                if isinstance(v, float):
-                    print(f"  {k:<22}: {v:.4f}")
-                else:
-                    print(f"  {k:<22}: {v}")
-
-            gpu_name = (
-                torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
-            )
-            append_summary_csv(
-                args.output_dir,
-                {
-                    "experiment_id": cfg["experiment_id"],
-                    "clip": metrics.get("clip", ""),
-                    "lpips": metrics.get("lpips", ""),
-                    "fid": metrics.get("fid", ""),
-                    "psnr": metrics.get("psnr", ""),
-                    "ssim": metrics.get("ssim", ""),
-                    "bpp": metrics.get("bpp", ""),
-                    "sampling_time_ms": "",
-                    "n_epochs_trained": n_epochs,
-                    "gpu": gpu_name,
-                    "date": datetime.date.today().isoformat(),
-                },
-            )
         else:
-            print(f"No checkpoint found in {ckpt_dir} — skipping evaluation.")
+            print(f"Evaluating baseline (no checkpoint): {cfg['experiment_id']}")
+            best_ckpt = None
+
+        metrics = run_evaluation(
+            cfg,
+            best_ckpt,
+            val_loader,
+            device,
+            encoder,
+            channel,
+            decoder,
+        )
+        print(f"\nResults for {cfg['experiment_id']}:")
+        for k, v in metrics.items():
+            if isinstance(v, float):
+                print(f"  {k:<22}: {v:.4f}")
+            else:
+                print(f"  {k:<22}: {v}")
+
+        gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+        append_summary_csv(
+            args.output_dir,
+            {
+                "experiment_id": cfg["experiment_id"],
+                "clip": metrics.get("clip", ""),
+                "lpips": metrics.get("lpips", ""),
+                "fid": metrics.get("fid", ""),
+                "psnr": metrics.get("psnr", ""),
+                "ssim": metrics.get("ssim", ""),
+                "bpp": metrics.get("bpp", ""),
+                "sampling_time_ms": "",
+                "n_epochs_trained": n_epochs,
+                "gpu": gpu_name,
+                "date": datetime.date.today().isoformat(),
+            },
+        )
+    else:
+        print(f"No checkpoint found in {ckpt_dir} — skipping evaluation.")
 
 
 if __name__ == "__main__":

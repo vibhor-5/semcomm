@@ -21,11 +21,12 @@ def run_evaluation(
     clip_model, _ = clip.load("ViT-B/32", device=device)
     clip_model.eval()
 
-    load_checkpoint(checkpoint_path, decoder, optimizer=None, scaler=None)
-    # Also restore encoder weights from the same checkpoint if present
-    ckpt = torch.load(checkpoint_path, map_location="cpu")
-    if "encoder_state" in ckpt:
-        encoder.load_state_dict(ckpt["encoder_state"])
+    if checkpoint_path is not None:
+        load_checkpoint(checkpoint_path, decoder, optimizer=None, scaler=None)
+        # Also restore encoder weights from the same checkpoint if present
+        ckpt = torch.load(checkpoint_path, map_location="cpu")
+        if "encoder_state" in ckpt:
+            encoder.load_state_dict(ckpt["encoder_state"])
 
     encoder.eval()
     decoder.eval()
