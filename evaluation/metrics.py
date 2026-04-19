@@ -21,12 +21,16 @@ def compute_clip_similarity(
         x = normalise(x)
         return clip_model.encode_image(x).float()
 
+    sim_sum = 0.0
     with torch.no_grad():
-        f_orig = F.normalize(encode(orig.to(device)), dim=-1)
-        f_recon = F.normalize(encode(recon.to(device)), dim=-1)
+        for i in range(0, len(orig), 128):
+            o_batch = orig[i : i + 128].to(device)
+            r_batch = recon[i : i + 128].to(device)
+            f_orig = F.normalize(encode(o_batch), dim=-1)
+            f_recon = F.normalize(encode(r_batch), dim=-1)
+            sim_sum += (f_orig * f_recon).sum(dim=-1).sum().item()
 
-    sim = (f_orig * f_recon).sum(dim=-1).mean().item()
-    return float(sim)
+    return float(sim_sum / len(orig))
 
 
 def compute_lpips(
@@ -39,9 +43,14 @@ def compute_lpips(
         lpips_model = lpips.LPIPS(net="alex").to(device)
         lpips_model.eval()
 
+    loss_sum = 0.0
     with torch.no_grad():
-        loss = lpips_model(orig.to(device), recon.to(device))
-    return float(loss.mean().item())
+        for i in range(0, len(orig), 128):
+            o_batch = orig[i : i + 128].to(device)
+            r_batch = recon[i : i + 128].to(device)
+            loss = lpips_model(o_batch, r_batch)
+            loss_sum += loss.sum().item()
+    return float(loss_sum / len(orig))
 
 
 def compute_fid(
