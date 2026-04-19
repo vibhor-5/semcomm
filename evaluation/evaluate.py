@@ -75,11 +75,12 @@ def run_evaluation(
         ),
     }
 
-    output_dir = os.path.dirname(os.path.dirname(checkpoint_path))
-    save_path = os.path.join(output_dir, "metrics.json")
-    os.makedirs(output_dir, exist_ok=True)
+    if checkpoint_path is not None:
+        output_dir = os.path.dirname(os.path.dirname(checkpoint_path))
+        save_path = os.path.join(output_dir, "metrics.json")
+        os.makedirs(output_dir, exist_ok=True)
 
-    with open(save_path, "w") as f:
-        json.dump({**metrics, "experiment_id": cfg["experiment_id"]}, f, indent=2)
+        with open(save_path, "w") as f:
+            json.dump({**metrics, "experiment_id": cfg["experiment_id"]}, f, indent=2)
 
     return metrics
