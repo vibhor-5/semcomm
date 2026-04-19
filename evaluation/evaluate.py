@@ -28,6 +28,10 @@ def run_evaluation(
         if "encoder_state" in ckpt:
             encoder.load_state_dict(ckpt["encoder_state"])
 
+    encoder = encoder.to(device)
+    decoder = decoder.to(device)
+    channel = channel.to(device)
+
     encoder.eval()
     decoder.eval()
 
