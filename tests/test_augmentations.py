@@ -1,11 +1,14 @@
 """Tests for data/augmentations.py."""
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import torch
-from PIL import Image
-import numpy as np
-from data.augmentations import get_transforms, mixup_collate_fn
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import torch  # noqa: E402
+from PIL import Image  # noqa: E402
+import numpy as np  # noqa: E402
+from data.augmentations import get_transforms, mixup_collate_fn  # noqa: E402
 
 
 def _make_pil(size=32):
@@ -15,7 +18,7 @@ def _make_pil(size=32):
 def test_basic_transform_output_range():
     train_trans, _ = get_transforms(32)
     img = _make_pil(32)
-    t = train_trans['basic'](img)
+    t = train_trans["basic"](img)
     assert t.shape == (3, 32, 32)
     assert t.min() >= -1.1 and t.max() <= 1.1
 
@@ -31,14 +34,14 @@ def test_val_transform_output_range():
 def test_none_transform():
     train_trans, _ = get_transforms(32)
     img = _make_pil(32)
-    t = train_trans['none'](img)
+    t = train_trans["none"](img)
     assert t.shape == (3, 32, 32)
 
 
 def test_full_transform():
     train_trans, _ = get_transforms(32)
     img = _make_pil(32)
-    t = train_trans['full'](img)
+    t = train_trans["full"](img)
     assert t.shape == (3, 32, 32)
 
 
@@ -58,8 +61,9 @@ def test_mixup_collate_shapes():
 
 def test_mixup_range():
     """MixUp of images in [-1,1] must stay in [-1,1]."""
-    batch = [(torch.clamp(torch.randn(3, 8, 8), -1, 1), 0, torch.zeros(16))
-             for _ in range(4)]
+    batch = [
+        (torch.clamp(torch.randn(3, 8, 8), -1, 1), 0, torch.zeros(16)) for _ in range(4)
+    ]
     collate = mixup_collate_fn(alpha=1.0)
     images, _, _ = collate(batch)
     assert images.min() >= -1.1 and images.max() <= 1.1

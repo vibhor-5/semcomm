@@ -6,14 +6,15 @@ Usage:
            --data_dir /content/drive/MyDrive/semcomm/data \
            --output_dir /content/drive/MyDrive/semcomm/outputs
 """
+
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.run_experiment import main
+from scripts.run_experiment import main  # noqa: E402
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Inject a helper flag so downstream callers know we're in flow-only mode
     # (the generic run_experiment.py handles both flow and diffusion, so we just call it)
     main()

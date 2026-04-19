@@ -2,13 +2,15 @@ import torch
 import torch.nn as nn
 from ..encoder import quantise
 
+
 class DeepJSCC(nn.Module):
     """DeepJSCC Baseline (CNN autoencoder)"""
+
     def __init__(self, latent_dim=128, quant_bits=8):
         super().__init__()
         self.latent_dim = latent_dim
         self.quant_bits = quant_bits
-        
+
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 64, 3, stride=2, padding=1),
             nn.BatchNorm2d(64),
@@ -25,9 +27,9 @@ class DeepJSCC(nn.Module):
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(512, latent_dim),
-            nn.Tanh()
+            nn.Tanh(),
         )
-        
+
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, 512),
             nn.ReLU(),
@@ -42,19 +44,19 @@ class DeepJSCC(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.ConvTranspose2d(64, 3, 3, stride=2, padding=1, output_padding=1),
-            nn.Tanh()
+            nn.Tanh(),
         )
-        
+
     def forward(self, x, snr_db=10):
         latent = self.encoder(x)
         if self.quant_bits > 0:
             latent = quantise(latent, self.quant_bits)
-            
+
         signal_power = latent.pow(2).mean(dim=-1, keepdim=True)
         snr_linear = 10 ** (snr_db / 10)
         noise_std = (signal_power / snr_linear).sqrt()
         noise = torch.randn_like(latent) * noise_std
-        
+
         noisy_latent = latent + noise
         recon = self.decoder(noisy_latent)
         return recon

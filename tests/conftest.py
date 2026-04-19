@@ -2,19 +2,20 @@
 Shared pytest fixtures for the semcomm test suite.
 All tests run on CPU without CLIP or diffusers for CI compatibility.
 """
+
 import sys
 import os
 import pytest
 import torch
 
 # Make the project root importable from tests/
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
 
 @pytest.fixture(scope="session")
 def device():
-    return torch.device('cpu')
+    return torch.device("cpu")
 
 
 @pytest.fixture(scope="session")

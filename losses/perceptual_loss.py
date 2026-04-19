@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
+
 class VGGPerceptualLoss(nn.Module):
     """L1 of VGG-16 relu2_2 features. VGG frozen."""
+
     def __init__(self, device):
         super().__init__()
         vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features
@@ -22,7 +24,7 @@ class VGGPerceptualLoss(nn.Module):
         # inputs typically in [-1, 1], so transform them to [0, 1] then Imagenet Normalization
         x_orig = (x_orig + 1.0) / 2.0
         x_recon = (x_recon + 1.0) / 2.0
-        
+
         # normalize
         mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(self.device)
         std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(self.device)

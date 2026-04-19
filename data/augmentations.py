@@ -2,23 +2,43 @@ import torch
 import numpy as np
 import torchvision.transforms as T
 
-NORMALISE = T.Normalize(mean=[0.5]*3, std=[0.5]*3)   # maps [0,1] → [-1,1]
+NORMALISE = T.Normalize(mean=[0.5] * 3, std=[0.5] * 3)  # maps [0,1] → [-1,1]
 
 
 def get_transforms(size):
     TRAIN = {
-        'none':   T.Compose([T.Resize((size, size)), T.ToTensor(), NORMALISE]),
-        'basic':  T.Compose([T.RandomHorizontalFlip(), T.RandomCrop(size, padding=4),
-                              T.ToTensor(), NORMALISE]),
-        'full':   T.Compose([T.RandomHorizontalFlip(), T.RandomCrop(size, padding=4),
-                              T.ColorJitter(0.2, 0.2, 0.2, 0.05),
-                              T.ToTensor(), NORMALISE]),
+        "none": T.Compose([T.Resize((size, size)), T.ToTensor(), NORMALISE]),
+        "basic": T.Compose(
+            [
+                T.RandomHorizontalFlip(),
+                T.RandomCrop(size, padding=4),
+                T.ToTensor(),
+                NORMALISE,
+            ]
+        ),
+        "full": T.Compose(
+            [
+                T.RandomHorizontalFlip(),
+                T.RandomCrop(size, padding=4),
+                T.ColorJitter(0.2, 0.2, 0.2, 0.05),
+                T.ToTensor(),
+                NORMALISE,
+            ]
+        ),
         # 'mixup' augmentation is applied via mixup_collate_fn at the DataLoader level
-        'mixup':  T.Compose([T.RandomHorizontalFlip(), T.RandomCrop(size, padding=4),
-                              T.ToTensor(), NORMALISE]),
+        "mixup": T.Compose(
+            [
+                T.RandomHorizontalFlip(),
+                T.RandomCrop(size, padding=4),
+                T.ToTensor(),
+                NORMALISE,
+            ]
+        ),
     }
 
-    VAL = T.Compose([T.Resize((size, size)), T.CenterCrop(size), T.ToTensor(), NORMALISE])
+    VAL = T.Compose(
+        [T.Resize((size, size)), T.CenterCrop(size), T.ToTensor(), NORMALISE]
+    )
 
     return TRAIN, VAL
 
@@ -35,6 +55,7 @@ def mixup_collate_fn(alpha: float = 0.4):
     Usage:
         loader = DataLoader(dataset, collate_fn=mixup_collate_fn(alpha=0.4))
     """
+
     def collate(batch):
         images, labels, tokens = zip(*batch)
         images = torch.stack(images)

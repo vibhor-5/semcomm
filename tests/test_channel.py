@@ -1,15 +1,23 @@
 """Tests for data/synthetic_channel.py."""
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import torch
-import pytest
-from data.synthetic_channel import AWGNChannel, RayleighChannel, BurstErasureChannel
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import torch  # noqa: E402
+import pytest  # noqa: E402
+from data.synthetic_channel import (  # noqa: E402
+    AWGNChannel,
+    RayleighChannel,
+    BurstErasureChannel,
+)
 
 
 # ---------------------------------------------------------------------------
 # AWGNChannel
 # ---------------------------------------------------------------------------
+
 
 def test_awgn_shape_preserved():
     ch = AWGNChannel(snr_db=10)
@@ -20,7 +28,7 @@ def test_awgn_shape_preserved():
 def test_awgn_noise_power():
     """SNR=10 dB on unit-power signal → noise power ≈ 0.1."""
     ch = AWGNChannel(snr_db=10)
-    x = torch.ones(200, 128)   # unit power
+    x = torch.ones(200, 128)  # unit power
     noisy = ch(x)
     noise_power = (noisy - x).pow(2).mean().item()
     assert abs(noise_power - 0.1) < 0.025, f"noise_power={noise_power:.4f}"
@@ -49,6 +57,7 @@ def test_awgn_return_snr_true():
 # RayleighChannel
 # ---------------------------------------------------------------------------
 
+
 def test_rayleigh_shape():
     ch = RayleighChannel(snr_db=10)
     x = torch.randn(4, 64)
@@ -65,6 +74,7 @@ def test_rayleigh_return_snr():
 # ---------------------------------------------------------------------------
 # BurstErasureChannel
 # ---------------------------------------------------------------------------
+
 
 def test_burst_shape():
     ch = BurstErasureChannel(erasure_prob=0.2, snr_db=10)

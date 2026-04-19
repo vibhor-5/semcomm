@@ -5,6 +5,7 @@ In practice the loss is computed inside FlowDecoder.compute_loss().
 This module provides the building blocks so they can be imported separately
 and used in training scripts that want explicit control over the loss terms.
 """
+
 import torch
 import torch.nn.functional as F
 
@@ -22,8 +23,9 @@ def flow_matching_loss(pred_v: torch.Tensor, target_v: torch.Tensor) -> torch.Te
     return F.mse_loss(pred_v, target_v)
 
 
-def linear_interpolation(x0: torch.Tensor, x1: torch.Tensor,
-                          t: torch.Tensor) -> torch.Tensor:
+def linear_interpolation(
+    x0: torch.Tensor, x1: torch.Tensor, t: torch.Tensor
+) -> torch.Tensor:
     """Interpolate between x1 (noise) and x0 (data) at time t.
 
     Args:
@@ -53,6 +55,7 @@ def ot_matched_noise(x0: torch.Tensor, x1: torch.Tensor) -> torch.Tensor:
     try:
         import ot
         import numpy as np
+
         B = x0.shape[0]
         x0_np = x0.view(B, -1).detach().cpu().numpy()
         x1_np = x1.view(B, -1).detach().cpu().numpy()
@@ -62,4 +65,4 @@ def ot_matched_noise(x0: torch.Tensor, x1: torch.Tensor) -> torch.Tensor:
         assignment = np.argmax(P, axis=1)
         return x1[assignment]
     except ImportError:
-        return x1   # identity fallback
+        return x1  # identity fallback

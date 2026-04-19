@@ -1,6 +1,6 @@
 import os
 import torch
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import Dataset
 import torchvision
 import torchvision.transforms as T
 from PIL import Image
@@ -22,8 +22,15 @@ class SemCommDataset(Dataset):
         'coco_subset'   — COCO val2017 2k-subset (pre-saved to disk)
     """
 
-    def __init__(self, root, split, dataset_name, image_size,
-                 clip_cache_path=None, transform=None):
+    def __init__(
+        self,
+        root,
+        split,
+        dataset_name,
+        image_size,
+        clip_cache_path=None,
+        transform=None,
+    ):
         self.split = split
         self.dataset_name = dataset_name
         self.image_size = image_size
@@ -32,28 +39,32 @@ class SemCommDataset(Dataset):
         # Accept string shortnames for transforms
         if isinstance(transform, str):
             train_trans, val_trans = get_transforms(image_size)
-            if split == 'train':
-                self.transform = train_trans.get(transform, train_trans['basic'])
+            if split == "train":
+                self.transform = train_trans.get(transform, train_trans["basic"])
             else:
                 self.transform = val_trans
 
-        if dataset_name == 'cifar10':
+        if dataset_name == "cifar10":
             self.base_dataset = torchvision.datasets.CIFAR10(
-                root=root, train=(split == 'train'), download=True)
-        elif dataset_name == 'cifar100':
+                root=root, train=(split == "train"), download=True
+            )
+        elif dataset_name == "cifar100":
             self.base_dataset = torchvision.datasets.CIFAR100(
-                root=root, train=(split == 'train'), download=True)
-        elif dataset_name == 'tinyimagenet':
+                root=root, train=(split == "train"), download=True
+            )
+        elif dataset_name == "tinyimagenet":
             self.base_dataset = _TinyImageNetDataset(root, split, image_size)
-        elif dataset_name == 'coco_subset':
+        elif dataset_name == "coco_subset":
             self.base_dataset = _COCOSubsetDataset(root, split, image_size)
         else:
-            raise ValueError(f"Unknown dataset '{dataset_name}'. "
-                             "Expected one of: cifar10, cifar100, tinyimagenet, coco_subset")
+            raise ValueError(
+                f"Unknown dataset '{dataset_name}'. "
+                "Expected one of: cifar10, cifar100, tinyimagenet, coco_subset"
+            )
 
         self.clip_tokens = None
         if clip_cache_path and os.path.exists(clip_cache_path):
-            self.clip_tokens = torch.load(clip_cache_path, map_location='cpu')
+            self.clip_tokens = torch.load(clip_cache_path, map_location="cpu")
 
     def __len__(self):
         return len(self.base_dataset)
@@ -71,8 +82,9 @@ class SemCommDataset(Dataset):
         return img, label, token
 
     @staticmethod
-    def precompute_clip_tokens(root, dataset_name, image_size,
-                                cache_path, device, batch_size=256):
+    def precompute_clip_tokens(
+        root, dataset_name, image_size, cache_path, device, batch_size=256
+    ):
         """
         Run once. Saves {cache_path} containing all CLIP tokens.
         Call this at the top of session_01 and reuse every session.
@@ -87,20 +99,20 @@ class SemCommDataset(Dataset):
         import torch.nn.functional as F
 
         print(f"Precomputing CLIP tokens → {cache_path}")
-        model, preprocess = clip.load('ViT-B/32', device=device)
+        model, preprocess = clip.load("ViT-B/32", device=device)
         model.eval()
         for p in model.parameters():
             p.requires_grad_(False)
 
-        is_train = 'train' in os.path.basename(cache_path)
-        if dataset_name == 'cifar10':
+        is_train = "train" in os.path.basename(cache_path)
+        if dataset_name == "cifar10":
             ds = torchvision.datasets.CIFAR10(root=root, train=is_train, download=True)
-        elif dataset_name == 'cifar100':
+        elif dataset_name == "cifar100":
             ds = torchvision.datasets.CIFAR100(root=root, train=is_train, download=True)
-        elif dataset_name == 'tinyimagenet':
-            ds = _TinyImageNetDataset(root, 'train' if is_train else 'val', image_size)
-        elif dataset_name == 'coco_subset':
-            split_str = 'train' if is_train else 'val'
+        elif dataset_name == "tinyimagenet":
+            ds = _TinyImageNetDataset(root, "train" if is_train else "val", image_size)
+        elif dataset_name == "coco_subset":
+            split_str = "train" if is_train else "val"
             ds = _COCOSubsetDataset(root, split_str, image_size)
         else:
             raise ValueError(f"Unknown dataset '{dataset_name}'")
@@ -133,6 +145,7 @@ class SemCommDataset(Dataset):
 # Helper dataset classes for non-torchvision datasets
 # ---------------------------------------------------------------------------
 
+
 class _TinyImageNetDataset(Dataset):
     """
     TinyImageNet loader.
@@ -151,41 +164,42 @@ class _TinyImageNetDataset(Dataset):
     """
 
     def __init__(self, root: str, split: str, image_size: int):
-        assert split in ('train', 'val', 'test'), f"Unknown split '{split}'"
+        assert split in ("train", "val", "test"), f"Unknown split '{split}'"
         self.image_size = image_size
-        self.samples = []   # list of (path, label_idx)
+        self.samples = []  # list of (path, label_idx)
         self.class_to_idx = {}
 
-        if split == 'train':
-            class_dirs = sorted(os.listdir(os.path.join(root, 'train')))
+        if split == "train":
+            class_dirs = sorted(os.listdir(os.path.join(root, "train")))
             self.class_to_idx = {c: i for i, c in enumerate(class_dirs)}
             for cls in class_dirs:
-                img_dir = os.path.join(root, 'train', cls, 'images')
+                img_dir = os.path.join(root, "train", cls, "images")
                 if not os.path.isdir(img_dir):
                     continue
                 for fname in os.listdir(img_dir):
-                    if fname.lower().endswith(('.jpeg', '.jpg', '.png')):
-                        self.samples.append((os.path.join(img_dir, fname),
-                                             self.class_to_idx[cls]))
+                    if fname.lower().endswith((".jpeg", ".jpg", ".png")):
+                        self.samples.append(
+                            (os.path.join(img_dir, fname), self.class_to_idx[cls])
+                        )
         else:  # val / test — use val_annotations.txt
-            ann_file = os.path.join(root, 'val', 'val_annotations.txt')
-            img_dir  = os.path.join(root, 'val', 'images')
+            ann_file = os.path.join(root, "val", "val_annotations.txt")
+            img_dir = os.path.join(root, "val", "images")
             # Build class list from train directory for consistent indices
-            train_dir = os.path.join(root, 'train')
+            train_dir = os.path.join(root, "train")
             if os.path.isdir(train_dir):
                 class_dirs = sorted(os.listdir(train_dir))
                 self.class_to_idx = {c: i for i, c in enumerate(class_dirs)}
             if os.path.exists(ann_file):
                 with open(ann_file) as f:
                     for line in f:
-                        parts = line.strip().split('\t')
+                        parts = line.strip().split("\t")
                         fname, cls = parts[0], parts[1]
                         label = self.class_to_idx.get(cls, 0)
                         self.samples.append((os.path.join(img_dir, fname), label))
             else:
                 # Flat fallback — label = -1
                 for fname in sorted(os.listdir(img_dir)):
-                    if fname.lower().endswith(('.jpeg', '.jpg', '.png')):
+                    if fname.lower().endswith((".jpeg", ".jpg", ".png")):
                         self.samples.append((os.path.join(img_dir, fname), -1))
 
     def __len__(self):
@@ -193,7 +207,7 @@ class _TinyImageNetDataset(Dataset):
 
     def __getitem__(self, idx):
         path, label = self.samples[idx]
-        img = Image.open(path).convert('RGB')
+        img = Image.open(path).convert("RGB")
         return img, label
 
 
@@ -212,19 +226,25 @@ class _COCOSubsetDataset(Dataset):
     """
 
     def __init__(self, root: str, split: str, image_size: int):
-        assert split in ('train', 'val', 'test'), f"Unknown split '{split}'"
+        assert split in ("train", "val", "test"), f"Unknown split '{split}'"
         self.image_size = image_size
         self.img_dir = os.path.join(root, split)
-        self.samples = sorted([
-            f for f in os.listdir(self.img_dir)
-            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
-        ]) if os.path.isdir(self.img_dir) else []
+        self.samples = (
+            sorted(
+                [
+                    f
+                    for f in os.listdir(self.img_dir)
+                    if f.lower().endswith((".jpg", ".jpeg", ".png"))
+                ]
+            )
+            if os.path.isdir(self.img_dir)
+            else []
+        )
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
         path = os.path.join(self.img_dir, self.samples[idx])
-        img = Image.open(path).convert('RGB')
-        return img, 0   # no class label for COCO OOD eval
-
+        img = Image.open(path).convert("RGB")
+        return img, 0  # no class label for COCO OOD eval
