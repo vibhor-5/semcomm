@@ -94,6 +94,10 @@ class DiffusionDecoder(nn.Module):
                 ),
             )
 
+            # Enable gradient checkpointing to drastically reduce VRAM
+            # and allow for stable training of larger 64x64 images on T4 GPUs
+            self.unet.enable_gradient_checkpointing()
+
     def _build_cond(self, latent, token, snr_emb):
         parts = []
         if latent is not None and latent.numel() > 0:

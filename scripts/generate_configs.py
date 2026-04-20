@@ -280,7 +280,7 @@ cfg = flow_cfg(
             "clip_cache_path": "/content/drive/MyDrive/semcomm/data/tinyimagenet_clip_train.pt",
         },
         "decoder": {"n_channels": 128, "n_blocks": 5},
-        "training": {"n_epochs": 80, "batch_size": 16},
+        "training": {"n_epochs": 80, "batch_size": 32},
     },
 )
 write_config(cfg, "configs/flow/B8_tinyimagenet.yaml")
@@ -443,7 +443,7 @@ cfg = diff_cfg(
             "root": "/content/drive/MyDrive/semcomm/data/tinyimagenet",
             "clip_cache_path": "/content/drive/MyDrive/semcomm/data/tinyimagenet_clip_train.pt",
         },
-        "training": {"n_epochs": 60, "batch_size": 16},
+        "training": {"n_epochs": 60, "batch_size": 32},
     },
 )
 write_config(cfg, "configs/diffusion/C9_tinyimagenet.yaml")
