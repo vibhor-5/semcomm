@@ -60,3 +60,41 @@ class DeepJSCC(nn.Module):
         noisy_latent = latent + noise
         recon = self.decoder(noisy_latent)
         return recon
+
+
+class DeepJSCCDecoder(nn.Module):
+    """
+    Standalone decoder wrapper for the DeepJSCC purely CNN-based decoder.
+    Provides standard compute_loss and sample methods for the Trainer.
+    """
+
+    def __init__(self, latent_dim=128):
+        super().__init__()
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, 512),
+            nn.ReLU(),
+            nn.Unflatten(1, (512, 1, 1)),
+            nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.ConvTranspose2d(64, 3, 3, stride=2, padding=1, output_padding=1),
+            nn.Tanh(),
+        )
+
+    def compute_loss(self, images, noisy_latent, tokens, snr_emb):
+        recon = self.decoder(noisy_latent)
+        if recon.shape[-2:] != images.shape[-2:]:
+            import torch.nn.functional as F
+
+            recon = F.interpolate(recon, size=images.shape[-2:], mode="bilinear")
+        return torch.nn.functional.mse_loss(recon, images)
+
+    def sample(self, noisy_latent, tokens=None, steps=None, snr_emb=None):
+        recon = self.decoder(noisy_latent)
+        return recon
