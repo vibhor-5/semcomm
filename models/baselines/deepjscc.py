@@ -96,7 +96,7 @@ class DeepJSCCDecoder(nn.Module):
             recon = F.interpolate(recon, size=images.shape[-2:], mode="bilinear")
         return torch.nn.functional.mse_loss(recon, images)
 
-    def sample(self, noisy_latent, tokens=None, steps=None, snr_emb=None):
+    def sample(self, noisy_latent, tokens=None, steps=None, snr_emb=None, **kwargs):
         recon = self.decoder(noisy_latent)
         if recon.shape[-1] != self.image_size:
             import torch.nn.functional as F
