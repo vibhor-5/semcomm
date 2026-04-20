@@ -97,7 +97,9 @@ def build_decoder(decoder_cfg, encoder_cfg, dataset_cfg):
     elif dtype == "deepjscc":
         from models.baselines.deepjscc import DeepJSCCDecoder
 
-        return DeepJSCCDecoder(latent_dim=encoder_cfg.get("latent_dim", 128))
+        return DeepJSCCDecoder(
+            latent_dim=encoder_cfg.get("latent_dim", 128), image_size=image_size
+        )
     raise ValueError(f"Unknown decoder type '{dtype}'")
 
 

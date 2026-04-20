@@ -68,8 +68,9 @@ class DeepJSCCDecoder(nn.Module):
     Provides standard compute_loss and sample methods for the Trainer.
     """
 
-    def __init__(self, latent_dim=128):
+    def __init__(self, latent_dim=128, image_size=32):
         super().__init__()
+        self.image_size = image_size
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, 512),
             nn.ReLU(),
@@ -97,4 +98,7 @@ class DeepJSCCDecoder(nn.Module):
 
     def sample(self, noisy_latent, tokens=None, steps=None, snr_emb=None):
         recon = self.decoder(noisy_latent)
+        if recon.shape[-1] != self.image_size:
+            import torch.nn.functional as F
+            recon = F.interpolate(recon, size=(self.image_size, self.image_size), mode="bilinear")
         return recon
