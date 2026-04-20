@@ -169,6 +169,25 @@ class _TinyImageNetDataset(Dataset):
         self.samples = []  # list of (path, label_idx)
         self.class_to_idx = {}
 
+        tiny_root = os.path.join(root, "tiny-imagenet-200")
+        if not os.path.isdir(tiny_root):
+            import urllib.request
+            import zipfile
+
+            print(f"\nDownloading TinyImageNet to {root}...")
+            os.makedirs(root, exist_ok=True)
+            zip_path = os.path.join(root, "tiny-imagenet-200.zip")
+            urllib.request.urlretrieve(
+                "http://cs231n.stanford.edu/tiny-imagenet-200.zip", zip_path
+            )
+            print("Extracting TinyImageNet...")
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(root)
+            os.remove(zip_path)
+            print("Done extracting.\n")
+
+        root = tiny_root
+
         if split == "train":
             class_dirs = sorted(os.listdir(os.path.join(root, "train")))
             self.class_to_idx = {c: i for i, c in enumerate(class_dirs)}
