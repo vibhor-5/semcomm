@@ -23,7 +23,6 @@ def load_checkpoint(path: str, model, optimizer=None, scaler=None):
     return ckpt.get("epoch", 0), ckpt.get("best_metric", 0.0)
 
 
-def get_checkpoint_dir(cfg: dict, drive_root: str) -> str:
-    """Returns path like /content/drive/MyDrive/semcomm/outputs/B1_linear/checkpoints/"""
-    exp_id = cfg["experiment_id"]
-    return os.path.join(drive_root, "outputs", exp_id, "checkpoints")
+def get_checkpoint_dir(cfg: dict, drive_root: str = None) -> str:
+    """Returns the runtime-overridden checkpoint directory."""
+    return cfg["logging"]["checkpoint_dir"]
